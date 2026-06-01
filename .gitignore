@@ -9,3 +9,4 @@ reports/*.json
 dist/
 build/
 .env
+.kiro/
