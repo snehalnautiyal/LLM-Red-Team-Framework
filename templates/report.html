@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scan Report — LLM Red-Team</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; padding: 2rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .meta { color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
+    .summary { border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .summary.critical { background: #2d1515; border: 1px solid #f87171; }
+    .summary.high     { background: #2d1f0f; border: 1px solid #fb923c; }
+    .summary.pass     { background: #0f2d1a; border: 1px solid #4ade80; }
+    .stat { text-align: center; }
+    .stat .num { font-size: 2rem; font-weight: 800; }
+    .stat .lbl { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .critical .num { color: #f87171; }
+    .high .num     { color: #fb923c; }
+    .pass .num     { color: #4ade80; }
+    .overall { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .probe { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    .probe.fail-critical { border-left: 4px solid #f87171; }
+    .probe.fail-high     { border-left: 4px solid #fb923c; }
+    .probe.fail-medium   { border-left: 4px solid #fbbf24; }
+    .probe.fail-low      { border-left: 4px solid #a3e635; }
+    .probe.pass          { border-left: 4px solid #4ade80; }
+    .probe.inconclusive  { border-left: 4px solid #94a3b8; }
+    .probe-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .badge { font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+    .badge.fail-critical { background: #f87171; color: #1a0000; }
+    .badge.fail-high     { background: #fb923c; color: #1a0800; }
+    .badge.fail-medium   { background: #fbbf24; color: #1a1000; }
+    .badge.fail-low      { background: #a3e635; color: #0a1a00; }
+    .badge.pass          { background: #4ade80; color: #001a08; }
+    .badge.inconclusive  { background: #94a3b8; color: #0f1117; }
+    .probe-id { font-family: monospace; font-size: 0.9rem; color: #a5b4fc; }
+    .cat { font-size: 0.75rem; color: #64748b; }
+    .reason { font-size: 0.875rem; color: #cbd5e1; margin-bottom: 0.5rem; }
+    .remediation { background: #1e1b2e; border-left: 3px solid #a78bfa; padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; font-size: 0.85rem; color: #c4b5fd; margin-top: 0.75rem; }
+    .remediation strong { display: block; margin-bottom: 0.25rem; color: #a78bfa; font-size: 0.75rem; text-transform: uppercase; }
+    .back { display: inline-block; margin-bottom: 1.5rem; color: #6366f1; text-decoration: none; font-size: 0.875rem; }
+    .back:hover { text-decoration: underline; }
+    h2 { font-size: 1rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back">← Run another scan</a>
+    <h1>🔴 Scan Report</h1>
+    <p class="meta">Target: <strong>{{ target }}</strong> &nbsp;·&nbsp; Model: <strong>{{ model }}</strong></p>
+
+    <!-- Summary banner -->
+    {% set overall_class = "critical" if overall == "CRITICAL" else ("high" if overall == "HIGH" else "pass") %}
+    <div class="summary {{ overall_class }}">
+      <div class="stat">
+        <div class="num">{{ results|length }}</div>
+        <div class="lbl">Total Probes</div>
+      </div>
+      <div class="stat">
+        <div class="num">{{ fails|length }}</div>
+        <div class="lbl">Failed</div>
+      </div>
+      <div class="stat">
+        <div class="num">{{ passes|length }}</div>
+        <div class="lbl">Passed</div>
+      </div>
+      <div class="stat">
+        <div class="num">{{ inconclusive|length }}</div>
+        <div class="lbl">Inconclusive</div>
+      </div>
+    </div>
+
+    <p class="overall">
+      Overall risk:
+      {% if overall == "CRITICAL" %}🔴 CRITICAL — immediate action required
+      {% elif overall == "HIGH" %}🟠 HIGH — fix before production
+      {% else %}✅ PASS — no issues found
+      {% endif %}
+    </p>
+
+    <!-- Failed probes first -->
+    {% if fails %}
+    <h2>❌ Failed Probes</h2>
+    {% for r in fails %}
+      {% set sev = r.severity.value if r.severity else "low" %}
+      <div class="probe fail-{{ sev }}">
+        <div class="probe-header">
+          <span class="badge fail-{{ sev }}">{{ sev }}</span>
+          <span class="probe-id">{{ r.probe_id }}</span>
+          <span class="cat">{{ r.category }}</span>
+        </div>
+        <p class="reason">{{ r.reason }}</p>
+        {% if r.remediation %}
+        <div class="remediation">
+          <strong>How to fix</strong>
+          {{ r.remediation }}
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Passed probes -->
+    {% if passes %}
+    <h2>✅ Passed Probes</h2>
+    {% for r in passes %}
+    <div class="probe pass">
+      <div class="probe-header">
+        <span class="badge pass">pass</span>
+        <span class="probe-id">{{ r.probe_id }}</span>
+        <span class="cat">{{ r.category }}</span>
+      </div>
+      <p class="reason">{{ r.reason }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Inconclusive -->
+    {% if inconclusive %}
+    <h2>⚠️ Inconclusive</h2>
+    {% for r in inconclusive %}
+    <div class="probe inconclusive">
+      <div class="probe-header">
+        <span class="badge inconclusive">?</span>
+        <span class="probe-id">{{ r.probe_id }}</span>
+        <span class="cat">{{ r.category }}</span>
+      </div>
+      <p class="reason">{{ r.reason }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  </div>
+</body>
+</html>

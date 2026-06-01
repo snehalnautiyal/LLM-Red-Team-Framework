@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Red-Team Framework</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 2.5rem; width: 100%; max-width: 560px; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    h1 span { color: #f87171; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 2rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; margin-top: 1.2rem; }
+    input, select { width: 100%; padding: 0.6rem 0.9rem; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; color: #e2e8f0; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: #6366f1; }
+    .categories { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
+    .cat-label { display: flex; align-items: center; gap: 0.5rem; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem; color: #cbd5e1; transition: border-color 0.2s; }
+    .cat-label:hover { border-color: #6366f1; }
+    .cat-label input[type=checkbox] { width: auto; accent-color: #6366f1; }
+    .auth-box { display: flex; align-items: flex-start; gap: 0.75rem; background: #1e1b2e; border: 1px solid #4c1d95; border-radius: 8px; padding: 1rem; margin-top: 1.5rem; }
+    .auth-box input[type=checkbox] { width: auto; margin-top: 2px; accent-color: #a78bfa; flex-shrink: 0; }
+    .auth-box p { font-size: 0.85rem; color: #c4b5fd; line-height: 1.5; }
+    .error { background: #2d1515; border: 1px solid #f87171; border-radius: 8px; padding: 0.75rem 1rem; color: #f87171; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    button { width: 100%; margin-top: 1.5rem; padding: 0.75rem; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #4f46e5; }
+    .provider-hint { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔴 LLM <span>Red-Team</span> Framework</h1>
+    <p class="subtitle">Automated adversarial security testing for LLM applications</p>
+
+    {% if error %}
+    <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/scan">
+
+      <label>Provider</label>
+      <select name="provider" id="provider" onchange="updateHint()">
+        <option value="fake">🧪 Fake (demo — no API key needed)</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+      </select>
+
+      <label>Base URL</label>
+      <input type="text" name="base_url" id="base_url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
+
+      <label>Model</label>
+      <input type="text" name="model" value="gpt-4o-mini" placeholder="gpt-4o-mini">
+
+      <label>API Key</label>
+      <input type="password" name="api_key" placeholder="sk-... (leave blank for Fake provider)">
+      <p class="provider-hint" id="hint">Using Fake provider — no API key needed. Results are simulated.</p>
+
+      <label>Probe Categories (leave all unchecked to run everything)</label>
+      <div class="categories">
+        <label class="cat-label"><input type="checkbox" name="categories" value="prompt_injection"> Prompt Injection</label>
+        <label class="cat-label"><input type="checkbox" name="categories" value="jailbreak"> Jailbreak</label>
+        <label class="cat-label"><input type="checkbox" name="categories" value="system_prompt_leakage"> System Prompt Leakage</label>
+        <label class="cat-label"><input type="checkbox" name="categories" value="data_leakage"> Data Leakage</label>
+      </div>
+
+      <div class="auth-box">
+        <input type="checkbox" name="authorized" value="yes" id="auth">
+        <p><strong>Authorization confirmation</strong><br>
+        I confirm that I own this target system, or have explicit written permission to perform security testing on it. I understand that unauthorized testing is illegal.</p>
+      </div>
+
+      <button type="submit">▶ Run Security Scan</button>
+    </form>
+  </div>
+
+  <script>
+    function updateHint() {
+      const p = document.getElementById('provider').value;
+      const hint = document.getElementById('hint');
+      const url = document.getElementById('base_url');
+      if (p === 'fake') {
+        hint.textContent = 'Using Fake provider — no API key needed. Results are simulated.';
+        url.value = 'https://demo-target.example.com';
+      } else if (p === 'openai') {
+        hint.textContent = 'Requires an OpenAI API key (sk-...).';
+        url.value = 'https://api.openai.com/v1';
+      } else {
+        hint.textContent = 'Requires an Anthropic API key.';
+        url.value = 'https://api.anthropic.com';
+      }
+    }
+  </script>
+</body>
+</html>
