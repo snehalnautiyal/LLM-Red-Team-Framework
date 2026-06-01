@@ -22,7 +22,7 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.post("/scan", response_class=HTMLResponse)
@@ -37,8 +37,7 @@ async def scan(
 ):
     # Authorization check — must tick the box
     if not authorized:
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "error": "You must confirm you are authorized to test this target."
         })
 
@@ -61,8 +60,7 @@ async def scan(
         engine = ScanEngine(adapter, rate_limit_s=0.5)
         results = engine.run(probes)
     except Exception as e:
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "error": f"Scan failed: {e}"
         })
 
@@ -73,8 +71,7 @@ async def scan(
     has_critical = any(r.severity and r.severity.value == "critical" for r in fails)
     overall = "CRITICAL" if has_critical else ("HIGH" if fails else "PASS")
 
-    return templates.TemplateResponse("report.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "report.html", {
         "target": base_url,
         "model": model,
         "results": results,
